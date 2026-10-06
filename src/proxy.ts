@@ -37,19 +37,45 @@ export async function proxy(request: NextRequest) {
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
 
-  if (!userId && !isPublic) {
+  // getClaims() can rotate the session (refresh token rotation is on), which queues a
+  // new Set-Cookie into `response` above. Every redirect is built from `response`
+  // instead of a bare NextResponse.redirect(), so a rotated cookie is never silently
+  // dropped on the way out, whatever the exact rotation timing turns out to be.
+  function redirectTo(path: string): NextResponse {
     const url = request.nextUrl.clone();
-    url.pathname = "/entrar";
+    url.pathname = path;
     url.search = "";
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    for (const cookie of response.cookies.getAll()) {
+      redirectResponse.cookies.set(cookie);
+    }
+    return redirectResponse;
+  }
+
+  if (!userId && !isPublic) {
+    return redirectTo("/entrar");
   }
 
   // Approved or not is decided by the database in the page layouts, not here.
   if (userId && (pathname === "/entrar" || pathname === "/criar-conta")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    url.search = "";
-    return NextResponse.redirect(url);
+    // A JWT can also outlive its profile row: a local `db reset` wipes auth.users but
+    // a browser can still hold an old, signature-valid token, and in production a
+    // still-live access token can outlast the moment an admin deletes the account.
+    // Without this check that ghost session would bounce forever between here and
+    // the page layout's own "no profile -> /entrar" redirect. Clearing it here,
+    // instead of just redirecting, is what breaks that loop too.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!profile) {
+      await supabase.auth.signOut();
+      return response;
+    }
+
+    return redirectTo("/");
   }
 
   // A stale authenticated page would be the worst bug this app could have:

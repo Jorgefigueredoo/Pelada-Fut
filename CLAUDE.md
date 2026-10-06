@@ -64,6 +64,15 @@ passando. O banco local precisa estar de pé para os testes.
     servidor) — essa ordem existe porque só a Admin API limpa sessões e refresh
     tokens corretamente. `profiles`/`player_admin_data` saem em cascata;
     `signup_events` preserva o histórico com o ator nulo.
+12. **Um JWT pode sobreviver à própria linha em `profiles`.** Um `supabase db
+    reset` local apaga `auth.users` mas o navegador pode continuar com um token
+    cujo assinatura ainda bate; sem cuidado, isso vira
+    `ERR_TOO_MANY_REDIRECTS` (proxy manda para `/`, o layout não acha o perfil e
+    manda de volta para `/entrar`, para sempre). Por isso `src/proxy.ts`, ao ver
+    uma sessão em `/entrar`/`/criar-conta`, confirma que o perfil existe antes de
+    redirecionar — se não existir, desloga em vez de redirecionar. Teste de
+    regressão (fora da suíte normal, apaga o banco de verdade):
+    `npx playwright test e2e/real-reset-repro.manual.spec.ts`.
 
 ## Fora do escopo
 
