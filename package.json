@@ -10,11 +10,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:start": "supabase start",
+    "db:start": "supabase start && npm run db:seed",
     "db:stop": "supabase stop",
-    "db:reset": "supabase db reset",
+    "db:reset": "supabase db reset && npm run db:seed",
     "db:status": "supabase status",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "db:seed": "tsx scripts/seed-admin.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

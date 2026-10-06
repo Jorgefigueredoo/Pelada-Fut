@@ -20,12 +20,30 @@ npm run db:start      # sobe Postgres, Auth, Realtime e Studio; a primeira vez b
 npm run dev           # http://localhost:3000
 ```
 
-O `npm run db:start` aplica todas as migrações de `supabase/migrations` automaticamente.
-Para recomeçar do zero com o banco limpo:
+O `npm run db:start` aplica todas as migrações de `supabase/migrations` e já deixa um
+admin pronto (veja "Admin de desenvolvimento" abaixo). Para recomeçar do zero com o
+banco limpo, também já com o admin:
 
 ```bash
 npm run db:reset
 ```
+
+### Admin de desenvolvimento
+
+`npm run db:start` e `npm run db:reset` chamam `npm run db:seed` no fim, que cria (ou,
+se já existir, só reaprova) um admin local pronto para uso:
+
+| | |
+|---|---|
+| E-mail | `admin@pelada.test` |
+| Senha | `admin12345` |
+
+Dá para trocar esses valores no `.env.local` (`SEED_ADMIN_EMAIL`,
+`SEED_ADMIN_PASSWORD`, `SEED_ADMIN_FULL_NAME`, `SEED_ADMIN_NICKNAME`) antes de rodar o
+seed. Isso é só para desenvolvimento local: o script (`scripts/seed-admin.ts`) recusa
+rodar contra qualquer URL que não seja `127.0.0.1`/`localhost`, a não ser que você
+force com `SEED_ADMIN_ALLOW_REMOTE=true` — o que você não deve fazer em produção. Em
+produção o primeiro admin continua sendo criado à mão, de propósito (próxima seção).
 
 ### Variáveis de ambiente
 

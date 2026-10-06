@@ -11,9 +11,10 @@ funções e commits em inglês.
 | | |
 |---|---|
 | `npm run dev` | app em http://localhost:3000 |
-| `npm run db:start` | sobe o Supabase local (precisa de Docker) |
+| `npm run db:start` | sobe o Supabase local (precisa de Docker) e seeda o admin de dev |
 | `npm run db:status` | URL e chaves locais |
-| `npm run db:reset` | recria o banco e reaplica todas as migrações |
+| `npm run db:reset` | recria o banco, reaplica as migrações e seeda o admin de dev |
+| `npm run db:seed` | cria/reaprova o admin de dev (`admin@pelada.test` / `admin12345`) |
 | `npm run db:stop` | desliga o Supabase local |
 | `npm test` | Vitest (unitários + integração contra o banco local) |
 | `npm run e2e` | Playwright (fluxos no navegador; sobe o dev server se preciso) |
