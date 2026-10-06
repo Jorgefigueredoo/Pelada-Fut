@@ -11,3 +11,4 @@ pessoas, então quem decide a ordem é o servidor, não o WhatsApp.
 Toda escrita na lista passa por funções do Postgres que travam a pelada e resolvem a
 ordem dentro de uma transação, para que dezenas de pessoas tocando no botão no mesmo
 segundo nunca gerem uma 21ª vaga.
+# Pelada-Fut
