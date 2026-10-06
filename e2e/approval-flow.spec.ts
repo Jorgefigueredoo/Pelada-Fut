@@ -36,6 +36,7 @@ test("a new account waits for approval, and an admin lets it in", async ({ page 
   await expect(page.getByRole("heading", { name: "Pelada de Quarta" })).toBeVisible();
 
   await page.getByRole("link", { name: "Admin" }).click();
+  await page.getByRole("link", { name: "Jogadores" }).click();
   const pendingCard = page.locator("div").filter({ hasText: "ZeE2E" }).first();
   await expect(pendingCard).toBeVisible();
   await page.getByRole("button", { name: "Aprovar" }).first().click();

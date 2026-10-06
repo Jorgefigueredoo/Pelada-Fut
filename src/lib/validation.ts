@@ -49,3 +49,25 @@ export const changePasswordSchema = z.object({
 export function firstError(error: z.ZodError): string {
   return error.issues[0]?.message ?? "Confira os dados preenchidos.";
 }
+
+/** Value of a `datetime-local` input, read in the app time zone. */
+export const dateTimeLocalSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "Informe data e hora.");
+
+export const gameSchema = z
+  .object({
+    startsAt: dateTimeLocalSchema,
+    listOpensAt: dateTimeLocalSchema,
+    location: z.string().trim().max(120, "O local pode ter no máximo 120 caracteres."),
+    slots: z.coerce
+      .number()
+      .int("O número de vagas tem que ser inteiro.")
+      .min(2, "No mínimo 2 vagas.")
+      .max(100, "No máximo 100 vagas."),
+  })
+  .refine((value) => value.listOpensAt <= value.startsAt, {
+    message: "A lista não pode abrir depois do jogo.",
+    path: ["listOpensAt"],
+  });

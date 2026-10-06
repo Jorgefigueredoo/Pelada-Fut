@@ -16,6 +16,7 @@ funções e commits em inglês.
 | `npm run db:reset` | recria o banco e reaplica todas as migrações |
 | `npm run db:stop` | desliga o Supabase local |
 | `npm test` | Vitest (unitários + integração contra o banco local) |
+| `npm run e2e` | Playwright (fluxos no navegador; sobe o dev server se preciso) |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run build` | build de produção |

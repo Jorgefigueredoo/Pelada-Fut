@@ -46,3 +46,27 @@ export async function deleteUsersByEmailPrefix(prefix: string) {
 export function uniqueEmail(prefix: string) {
   return `${prefix}${randomUUID().slice(0, 8)}@pelada.test`;
 }
+
+/** Creates an approved player, ready to sign in. */
+export async function createApprovedPlayer(prefix: string, nickname: string, fullName: string) {
+  const email = uniqueEmail(prefix);
+  const client = admin();
+
+  const { data, error } = await client.auth.admin.createUser({
+    email,
+    password: TEST_PASSWORD,
+    email_confirm: true,
+    user_metadata: { full_name: fullName, nickname },
+  });
+  if (error) throw error;
+
+  await client.from("profiles").update({ status: "approved" }).eq("id", data.user.id);
+
+  return { id: data.user.id, email, nickname };
+}
+
+/** Removes only the peladas this suite created, found by their marker location. */
+export async function deleteE2EGames(location: string) {
+  const { error } = await admin().from("games").delete().eq("location", location);
+  if (error) throw error;
+}

@@ -10,6 +10,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="space-y-3">
         <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
         <nav className="flex gap-4 text-sm">
+          <Link href="/admin/peladas" className="font-medium underline">
+            Peladas
+          </Link>
           <Link href="/admin/jogadores" className="font-medium underline">
             Jogadores
           </Link>

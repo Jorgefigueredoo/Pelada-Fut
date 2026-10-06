@@ -132,3 +132,107 @@ export async function withSoleAdmin<T>(userId: string, fn: () => Promise<T>): Pr
     }
   }
 }
+
+export type GameOptions = {
+  slots?: number;
+  /** Milliseconds from now until the list opens. Negative means already open. */
+  opensInMs?: number;
+  /** Milliseconds from now until kickoff. */
+  startsInMs?: number;
+  location?: string;
+};
+
+/** Creates a pelada with the secret key, so a test does not need an admin fixture. */
+export async function createGame(options: GameOptions = {}): Promise<string> {
+  const now = Date.now();
+  const admin = adminClient();
+
+  const { data, error } = await admin
+    .from("games")
+    .insert({
+      slots: options.slots ?? 20,
+      location: options.location ?? "Quadra de teste",
+      list_opens_at: new Date(now + (options.opensInMs ?? -1_000)).toISOString(),
+      starts_at: new Date(now + (options.startsInMs ?? 2 * 60 * 60 * 1000)).toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  return data.id as string;
+}
+
+export async function deleteGames(gameIds: string[]): Promise<void> {
+  const admin = adminClient();
+  for (const id of gameIds) {
+    await admin.from("games").delete().eq("id", id);
+  }
+}
+
+/** Raw signups for a pelada, ordered by arrival, read past RLS for assertions. */
+export async function readSignups(gameId: string) {
+  const { data, error } = await adminClient()
+    .from("signups")
+    .select("user_id, seq, status, joined_at, added_by_admin, promoted_at, demoted_at")
+    .eq("game_id", gameId)
+    .order("seq");
+  if (error) throw error;
+  return data as Array<{
+    user_id: string;
+    seq: number;
+    status: "confirmed" | "waitlist" | "out";
+    joined_at: string;
+    added_by_admin: boolean;
+    promoted_at: string | null;
+    demoted_at: string | null;
+  }>;
+}
+
+export type GameState = {
+  server_time: string;
+  game: {
+    id: string;
+    starts_at: string;
+    location: string;
+    slots: number;
+    list_opens_at: string;
+    status: "scheduled" | "canceled";
+    is_open: boolean;
+  } | null;
+  entries: Array<{
+    seq: number;
+    user_id: string;
+    nickname: string;
+    first_name: string;
+    status: "confirmed" | "waitlist";
+    joined_at: string;
+    added_by_admin: boolean;
+    position: number;
+  }>;
+  my_signup: {
+    status: "confirmed" | "waitlist";
+    position: number;
+    joined_at: string;
+    added_by_admin: boolean;
+    promoted_at: string | null;
+    demoted_at: string | null;
+  } | null;
+};
+
+/** Sets the pelada's clock fields directly, to test "before opening" and "after kickoff". */
+export async function setGameTimes(
+  gameId: string,
+  times: { opensInMs?: number; startsInMs?: number },
+): Promise<void> {
+  const now = Date.now();
+  const patch: Record<string, string> = {};
+  if (times.opensInMs !== undefined) {
+    patch.list_opens_at = new Date(now + times.opensInMs).toISOString();
+  }
+  if (times.startsInMs !== undefined) {
+    patch.starts_at = new Date(now + times.startsInMs).toISOString();
+  }
+
+  const { error } = await adminClient().from("games").update(patch).eq("id", gameId);
+  if (error) throw error;
+}

@@ -12,7 +12,7 @@ const PLAYER_LINKS = [
   { href: "/perfil", label: "Perfil", icon: User },
 ];
 
-const ADMIN_LINK = { href: "/admin/jogadores", label: "Admin", icon: Shield };
+const ADMIN_LINK = { href: "/admin/peladas", label: "Admin", icon: Shield };
 
 /** Bottom bar, because the app is used standing up, on a phone, with one hand. */
 export function MainNav({ isAdmin }: { isAdmin: boolean }) {
