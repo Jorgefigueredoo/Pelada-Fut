@@ -360,5 +360,41 @@ describe("list rules", () => {
       const { data } = await a.client.rpc("get_next_game");
       expect((data as GameState).game?.id).toBe(soon);
     });
+
+    it("lists every upcoming pelada, not just the nearest one", async () => {
+      await adminClient()
+        .from("games")
+        .update({
+          list_opens_at: new Date(Date.now() - 9 * 60 * 60 * 1000).toISOString(),
+          starts_at: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+        })
+        .in("id", games);
+
+      const soon = await newGame({ slots: 5, startsInMs: 60 * 60 * 1000 });
+      const later = await newGame({ slots: 5, startsInMs: 48 * 60 * 60 * 1000 });
+
+      const { data, error } = await a.client.rpc("get_upcoming_games");
+      expect(error).toBeNull();
+
+      const upcoming = data as {
+        server_time: string;
+        games: GameState[];
+      };
+      const ids = upcoming.games.map((g) => g.game?.id);
+      expect(ids).toEqual([soon, later]);
+      expect(new Date(upcoming.server_time).getTime()).toBeGreaterThan(0);
+    });
+
+    it("upcoming games never leak another player's email or stars either", async () => {
+      const gameId = await newGame();
+      await a.client.rpc("join_game", { p_game_id: gameId });
+
+      const { data } = await b.client.rpc("get_upcoming_games");
+      const serialized = JSON.stringify(data);
+
+      expect(serialized).not.toContain("stars");
+      expect(serialized).not.toContain("email");
+      expect(serialized).not.toContain("@pelada.test");
+    });
   });
 });

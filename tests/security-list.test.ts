@@ -164,6 +164,9 @@ describe("list security with the publishable key", () => {
 
         const next = await user.client.rpc("get_next_game");
         expect(next.error?.message).toContain("NOT_APPROVED");
+
+        const upcoming = await user.client.rpc("get_upcoming_games");
+        expect(upcoming.error?.message).toContain("NOT_APPROVED");
       }
     });
 
@@ -187,6 +190,7 @@ describe("list security with the publishable key", () => {
         anon.rpc("leave_game", { p_game_id: gameId }),
         anon.rpc("get_game_state", { p_game_id: gameId }),
         anon.rpc("get_next_game"),
+        anon.rpc("get_upcoming_games"),
       ]);
 
       for (const call of calls) {

@@ -67,6 +67,12 @@ export type GameState = {
   my_signup: MySignup | null;
 };
 
+/** Home screen: every upcoming pelada, not just the nearest one. */
+export type UpcomingGames = {
+  server_time: string;
+  games: GameState[];
+};
+
 export type AdminGame = {
   id: string;
   starts_at: string;
