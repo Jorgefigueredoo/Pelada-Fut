@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { AdminNav } from "@/components/admin/admin-nav";
 import { requireAdminProfile } from "@/lib/auth";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -8,15 +7,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="space-y-6">
       <header className="space-y-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
-        <nav className="flex gap-4 text-sm">
-          <Link href="/admin/peladas" className="font-medium underline">
-            Peladas
-          </Link>
-          <Link href="/admin/jogadores" className="font-medium underline">
-            Jogadores
-          </Link>
-        </nav>
+        <p className="text-muted-foreground text-sm font-medium tracking-wide uppercase">
+          Admin
+        </p>
+        <AdminNav />
       </header>
       {children}
     </div>
