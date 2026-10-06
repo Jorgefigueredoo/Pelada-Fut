@@ -73,6 +73,13 @@ passando. O banco local precisa estar de pé para os testes.
     redirecionar — se não existir, desloga em vez de redirecionar. Teste de
     regressão (fora da suíte normal, apaga o banco de verdade):
     `npx playwright test e2e/real-reset-repro.manual.spec.ts`.
+13. **Notificações são só dentro do app, nunca push.** `notifications` é
+    populada por `_notify`, chamada de dentro das próprias funções de escrita
+    (`_reconcile_game`, `admin_add_player`, `admin_remove_player`,
+    `admin_set_game_status`, `admin_set_user_status`) — nunca inserida pelo
+    cliente. O sino (`src/components/layout/notification-bell.tsx`) faz
+    polling a cada 30s enquanto a aba está visível; sem Realtime, sem Service
+    Worker, sem depender de nada acontecer com o app fechado.
 
 ## Fora do escopo
 

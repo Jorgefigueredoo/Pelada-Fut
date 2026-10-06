@@ -1,3 +1,4 @@
+import { AppHeader } from "@/components/layout/app-header";
 import { MainNav } from "@/components/layout/main-nav";
 import { requireApprovedProfile } from "@/lib/auth";
 
@@ -9,6 +10,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-dvh pb-16">
+      <AppHeader />
       <div className="mx-auto w-full max-w-md px-4 py-6">{children}</div>
       <MainNav isAdmin={profile.role === "admin"} />
     </div>

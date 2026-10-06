@@ -1,7 +1,6 @@
 import { GameCard } from "@/components/game/game-card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { requireApprovedProfile } from "@/lib/auth";
-import { APP_NAME } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import type { GameState } from "@/lib/types";
 
@@ -13,10 +12,7 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <p className="text-muted-foreground text-sm">Olá, {profile.nickname}</p>
-        <h1 className="text-2xl font-semibold tracking-tight">{APP_NAME}</h1>
-      </header>
+      <p className="text-muted-foreground text-sm">Olá, {profile.nickname}</p>
 
       {error || !data ? (
         <Alert variant="destructive">

@@ -208,3 +208,16 @@ export function fromDateTimeLocalValue(value: string): string {
     ),
   );
 }
+
+/** "agora", "há 5 min", "há 3h", "há 2d" — for notification timestamps. */
+export function formatRelative(iso: string, nowMs: number = Date.now()): string {
+  const diffSeconds = Math.floor((nowMs - new Date(iso).getTime()) / 1000);
+  if (diffSeconds < 60) return "agora";
+  const minutes = Math.floor(diffSeconds / 60);
+  if (minutes < 60) return `há ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `há ${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `há ${days}d`;
+  return formatShort(iso);
+}

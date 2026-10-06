@@ -104,3 +104,27 @@ export function entryLabel(entry: ListEntry, duplicates: Set<string>): string {
     ? `${entry.nickname} (${entry.first_name})`
     : entry.nickname;
 }
+
+export type NotificationType =
+  | "promoted"
+  | "demoted"
+  | "admin_added"
+  | "admin_removed"
+  | "approved"
+  | "game_canceled"
+  | "game_reopened"
+  | "team_published";
+
+export type AppNotification = {
+  id: number;
+  type: NotificationType;
+  meta: Record<string, unknown>;
+  created_at: string;
+  read_at: string | null;
+  game: { id: string; starts_at: string; location: string } | null;
+};
+
+export type NotificationPage = {
+  items: AppNotification[];
+  unread_count: number;
+};
