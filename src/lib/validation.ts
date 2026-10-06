@@ -71,3 +71,18 @@ export const gameSchema = z
     message: "A lista não pode abrir depois do jogo.",
     path: ["listOpensAt"],
   });
+
+export const adminCreatePlayerSchema = z.object({
+  fullName: nameSchema,
+  nickname: nicknameSchema,
+  email: emailSchema,
+  // Blank means "generate one for me": the admin has no SMTP to send it by email
+  // anyway, so either way the password is handed over outside the app (WhatsApp).
+  password: z.union([passwordSchema, z.literal("")]),
+});
+
+export const adminUpdatePlayerSchema = z.object({
+  fullName: nameSchema,
+  nickname: nicknameSchema,
+  email: emailSchema,
+});

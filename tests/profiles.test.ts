@@ -177,16 +177,47 @@ describe("profiles and approval", () => {
       expect(error?.message).toContain("INVALID_STARS");
     });
 
-    it("returns email and stars to an admin", async () => {
+    it("returns email and stars to an admin, paginated", async () => {
       const { data, error } = await admin.client.rpc("admin_list_players", {
         p_search: player.email,
       });
       expect(error).toBeNull();
 
-      const rows = data as Array<{ id: string; email: string; stars: number | null }>;
-      expect(rows).toHaveLength(1);
-      expect(rows[0].email).toBe(player.email);
-      expect(rows[0]).toHaveProperty("stars");
+      const page = data as {
+        items: Array<{ id: string; email: string; stars: number | null }>;
+        total: number;
+        page: number;
+        per_page: number;
+      };
+      expect(page.items).toHaveLength(1);
+      expect(page.items[0].email).toBe(player.email);
+      expect(page.items[0]).toHaveProperty("stars");
+      expect(page.total).toBe(1);
+      expect(page.page).toBe(1);
+      expect(page.per_page).toBe(10);
+    });
+
+    it("paginates at 10 per page by default", async () => {
+      const extras = await Promise.all(
+        Array.from({ length: 15 }, () => createTestUser({ nickname: "PagTest" })),
+      );
+      created.push(...extras.map((u) => u.id));
+
+      const firstPage = await admin.client.rpc("admin_list_players", {
+        p_search: "PagTest",
+      });
+      const secondPage = await admin.client.rpc("admin_list_players", {
+        p_search: "PagTest",
+        p_page: 2,
+      });
+
+      const first = firstPage.data as { items: unknown[]; total: number };
+      const second = secondPage.data as { items: unknown[]; total: number };
+
+      expect(first.items).toHaveLength(10);
+      expect(first.total).toBe(15);
+      expect(second.items).toHaveLength(5);
+      expect(second.total).toBe(15);
     });
 
     it("never lets the app run out of admins", async () => {

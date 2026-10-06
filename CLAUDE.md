@@ -53,9 +53,17 @@ passando. O banco local precisa estar de pé para os testes.
    `NEXT_PUBLIC_`. Chaves novas (`sb_publishable_` / `sb_secret_`), não `anon`/`service_role`.
 8. **Datas em `timestamptz`, exibidas sempre com o fuso explícito** (`TIME_ZONE` em
    `src/lib/constants.ts`). A Vercel roda em UTC; formatar sem fuso mostra hora errada.
-9. **O app nunca fica sem admin.** As funções recusam rebaixar ou bloquear o último.
+9. **O app nunca fica sem admin.** As funções recusam rebaixar, bloquear ou excluir o
+   último (`admin_set_user_role`, `admin_set_user_status`,
+   `admin_prepare_player_deletion`).
 10. **Schema só por migração** em `supabase/migrations`. Nada de alterar o banco pela
     interface do Studio. Testes que tocam o banco criam e limpam os próprios dados.
+11. **Excluir conta nunca é um delete direto em `auth.users`.** O fluxo é
+    `admin_prepare_player_deletion` (RPC, tira o jogador de toda lista ativa e
+    promove a espera) seguido de `auth.admin.deleteUser` (chave secreta, só no
+    servidor) — essa ordem existe porque só a Admin API limpa sessões e refresh
+    tokens corretamente. `profiles`/`player_admin_data` saem em cascata;
+    `signup_events` preserva o histórico com o ator nulo.
 
 ## Fora do escopo
 

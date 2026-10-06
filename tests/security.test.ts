@@ -159,12 +159,28 @@ describe("security with the publishable key", () => {
           p_status: "approved",
         }),
         player.client.rpc("admin_set_stars", { p_user_id: player.id, p_stars: 5 }),
+        player.client.rpc("admin_update_player", {
+          p_user_id: player.id,
+          p_full_name: "Invasor",
+          p_nickname: "Invasor",
+        }),
+        player.client.rpc("admin_prepare_player_deletion", { p_user_id: other.id }),
       ]);
 
       for (const call of calls) {
         expect(call.error?.message).toContain("FORBIDDEN");
       }
       expect((await readProfile(player.id)).role).toBe("player");
+    });
+
+    it("cannot be created, edited or deleted by another player, even calling the Admin API shape", async () => {
+      // The player has no secret key, so the create/delete flow (which runs
+      // server-side in a Server Action) is not reachable from the browser at
+      // all. What is reachable is the RPC side, already covered above.
+      const { error } = await player.client.rpc("admin_prepare_player_deletion", {
+        p_user_id: player.id,
+      });
+      expect(error?.message).toContain("FORBIDDEN");
     });
   });
 

@@ -16,6 +16,15 @@ export type AdminPlayer = Profile & {
   stars: number | null;
 };
 
+export type AdminPlayerPage = {
+  items: AdminPlayer[];
+  total: number;
+  page: number;
+  per_page: number;
+};
+
+export const PLAYERS_PER_PAGE = 10;
+
 export type GameStatus = "scheduled" | "canceled";
 export type SignupStatus = "confirmed" | "waitlist";
 

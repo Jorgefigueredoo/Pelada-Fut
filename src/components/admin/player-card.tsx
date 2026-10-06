@@ -7,7 +7,7 @@ const STATUS_LABEL: Record<UserStatus, string> = {
   pending: "Pendente",
   approved: "Aprovado",
   rejected: "Recusado",
-  blocked: "Bloqueado",
+  blocked: "Inativo",
 };
 
 const STATUS_VARIANT: Record<UserStatus, "default" | "secondary" | "destructive" | "outline"> = {
