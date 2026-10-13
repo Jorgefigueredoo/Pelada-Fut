@@ -7,6 +7,8 @@ export type Profile = {
   nickname: string;
   role: UserRole;
   status: UserStatus;
+  avatar_path: string | null;
+  avatar_updated_at: string | null;
 };
 
 /** Admin-only view of a player. Email and stars never reach a player client. */
@@ -44,6 +46,8 @@ export type ListEntry = {
   user_id: string;
   nickname: string;
   first_name: string;
+  avatar_path: string | null;
+  avatar_updated_at: string | null;
   status: SignupStatus;
   joined_at: string;
   added_by_admin: boolean;
