@@ -10,6 +10,11 @@ import type { AppNotification } from "@/lib/types";
  * something this low-urgency, and it costs nothing extra on the Supabase Free plan.
  */
 const POLL_MS = 30_000;
+/**
+ * Coming back to the app refetches, but not more than this often: around the list
+ * opening people bounce between WhatsApp and the app every few seconds.
+ */
+const REFOCUS_MIN_INTERVAL_MS = 10_000;
 
 type UseNotifications = {
   items: AppNotification[];
@@ -24,10 +29,12 @@ export function useNotifications(): UseNotifications {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const inFlightRef = useRef(false);
+  const lastFetchRef = useRef(0);
 
   const fetchNotifications = useCallback(async () => {
     if (inFlightRef.current) return;
     inFlightRef.current = true;
+    lastFetchRef.current = Date.now();
     try {
       const supabase = createClient();
       const { data, error } = await supabase.rpc("get_my_notifications");
@@ -49,7 +56,9 @@ export function useNotifications(): UseNotifications {
     }, POLL_MS);
 
     const onVisible = () => {
-      if (document.visibilityState === "visible") void fetchNotifications();
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - lastFetchRef.current < REFOCUS_MIN_INTERVAL_MS) return;
+      void fetchNotifications();
     };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
