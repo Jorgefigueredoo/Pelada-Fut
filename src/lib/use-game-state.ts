@@ -2,13 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ListSync, ServerClock } from "@/lib/list-sync";
 import { createClient } from "@/lib/supabase/client";
-import type { GameState } from "@/lib/types";
+import type { GameState, GameStateUnchanged, ListChangedPayload } from "@/lib/types";
 
-/** No client refetches more than once a second, even at the opening peak. */
-const REFETCH_INTERVAL_MS = 1000;
 /** Used only while the realtime channel is not connected. */
 const FALLBACK_POLL_MS = 5000;
+/** Even with the channel up, check this often in case a broadcast was lost. */
+const SAFETY_POLL_MS = 30_000;
+/** Coming back to the app refetches, unless the list was fetched this recently. */
+const REFOCUS_MIN_AGE_MS = 2000;
+
+/** When a request left and when its response arrived, so the clock can discount the trip. */
+export type ResponseTiming = { sentAt: number; receivedAt: number };
 
 type UseGameState = {
   state: GameState;
@@ -16,91 +22,96 @@ type UseGameState = {
   serverNow: number;
   live: boolean;
   refetch: () => void;
-  applyState: (next: GameState) => void;
+  applyState: (next: GameState | GameStateUnchanged, timing: ResponseTiming) => void;
 };
 
 /**
- * Keeps one pelada's list fresh:
+ * Keeps one pelada's list fresh without hammering the Free plan at the opening:
  *   - Realtime Broadcast from the database on a private channel per pelada, which
  *     authorizes once at subscribe time instead of per event per subscriber.
- *   - On an event, refetch the list at most once a second.
+ *   - What to fetch and when is decided by ListSync (src/lib/list-sync.ts):
+ *     broadcasts are coalesced by the database, fetches are spread out, and a fetch
+ *     that finds nothing new costs a few bytes.
  *   - Refetch when the app comes back to the foreground.
- *   - If the channel never connects, poll every 5s while the screen is visible, so
- *     the app keeps working rather than showing a frozen list.
+ *   - If the channel is down, poll every 5s while the screen is visible, so the app
+ *     keeps working rather than showing a frozen list.
+ *
+ * Nothing refetches at the moment the countdown ends: the button enables from the
+ * database clock, the database refuses an early tap, and the first confirmation's
+ * broadcast wakes everyone up. A hundred phones asking "is it open?" in the same
+ * second as a hundred confirmations was pure load.
  */
 export function useGameState(initialState: GameState): UseGameState {
   const [state, setState] = useState(initialState);
   const [live, setLive] = useState(false);
   // The countdown runs off this, which is the database clock carried in every
-  // response, plus the time elapsed on the device since that response arrived.
+  // response, plus the time elapsed on the device since.
   const [serverNow, setServerNow] = useState(() =>
     new Date(initialState.server_time).getTime(),
   );
 
   const gameId = state.game?.id ?? null;
 
-  /** Difference between the database clock and this device's clock. */
-  const offsetRef = useRef(0);
+  const versionRef = useRef<number | null>(initialState.version ?? null);
+  const clockRef = useRef<ServerClock | null>(null);
+  const syncRef = useRef<ListSync | null>(null);
+  const liveRef = useRef(false);
 
   useEffect(() => {
-    offsetRef.current = new Date(initialState.server_time).getTime() - Date.now();
+    // Seeded once from the server render; every timed response refines it.
+    clockRef.current ??= new ServerClock(
+      new Date(initialState.server_time).getTime(),
+      Date.now(),
+    );
   }, [initialState.server_time]);
 
-  const applyState = useCallback((next: GameState) => {
-    const serverTime = new Date(next.server_time).getTime();
-    offsetRef.current = serverTime - Date.now();
-    setServerNow(serverTime);
-    setState(next);
-  }, []);
-
   useEffect(() => {
-    const timer = setInterval(() => setServerNow(Date.now() + offsetRef.current), 1000);
+    const timer = setInterval(() => {
+      if (clockRef.current) setServerNow(clockRef.current.at(Date.now()));
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const lastFetchRef = useRef(0);
-  const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inFlightRef = useRef(false);
+  const applyState = useCallback(
+    (next: GameState | GameStateUnchanged, timing: ResponseTiming) => {
+      const clock = clockRef.current;
+      if (clock) {
+        clock.sample(new Date(next.server_time).getTime(), timing.sentAt, timing.receivedAt);
+        setServerNow(clock.at(Date.now()));
+      }
 
-  const fetchNow = useCallback(async () => {
-    if (!gameId || inFlightRef.current) return;
+      if ("unchanged" in next) return;
+      // A response that left before a newer one but arrived after it: the screen
+      // keeps the newer. Without this, a refetch that crossed a confirmation could
+      // flip "Você está confirmado" back to "Confirmar presença" for a second.
+      if (versionRef.current !== null && next.version < versionRef.current) return;
 
-    inFlightRef.current = true;
-    lastFetchRef.current = Date.now();
-    try {
-      const supabase = createClient();
-      const { data, error } = await supabase.rpc("get_game_state", { p_game_id: gameId });
-      if (!error && data) applyState(data as GameState);
-    } finally {
-      inFlightRef.current = false;
-    }
-  }, [gameId, applyState]);
+      versionRef.current = next.version ?? null;
+      setState(next);
+    },
+    [],
+  );
 
-  /** Leading call, then a single trailing call, so a burst of events costs one request. */
-  const refetch = useCallback(() => {
-    const since = Date.now() - lastFetchRef.current;
-    if (since >= REFETCH_INTERVAL_MS) {
-      void fetchNow();
-      return;
-    }
-    if (pendingRef.current) return;
-    pendingRef.current = setTimeout(() => {
-      pendingRef.current = null;
-      void fetchNow();
-    }, REFETCH_INTERVAL_MS - since);
-  }, [fetchNow]);
-
-  useEffect(() => {
-    return () => {
-      if (pendingRef.current) clearTimeout(pendingRef.current);
-    };
-  }, []);
-
-  // Realtime: one private channel per pelada.
   useEffect(() => {
     if (!gameId) return;
 
     const supabase = createClient();
+    const sync = new ListSync({
+      currentVersion: () => versionRef.current,
+      fetch: async () => {
+        const sentAt = Date.now();
+        const { data, error } = await supabase.rpc("get_game_state", {
+          p_game_id: gameId,
+          p_known_version: versionRef.current ?? undefined,
+        });
+        if (error || !data) return false;
+        applyState(data as GameState | GameStateUnchanged, { sentAt, receivedAt: Date.now() });
+        return true;
+      },
+    });
+    syncRef.current = sync;
+
+    // Realtime: one private channel per pelada.
     let active = true;
     const channel = supabase.channel(`game:${gameId}`, { config: { private: true } });
 
@@ -109,65 +120,48 @@ export function useGameState(initialState: GameState): UseGameState {
       if (!active) return;
 
       channel
-        .on("broadcast", { event: "list_changed" }, () => refetch())
+        .on("broadcast", { event: "list_changed" }, ({ payload }) => {
+          const { version, quiet_ms } = (payload ?? {}) as ListChangedPayload;
+          sync.onBroadcast(version, quiet_ms);
+        })
         .subscribe((status) => {
           if (!active) return;
-          setLive(status === "SUBSCRIBED");
-          if (status === "SUBSCRIBED") refetch();
+          const isLive = status === "SUBSCRIBED";
+          liveRef.current = isLive;
+          setLive(isLive);
+          if (isLive) sync.onSubscribed();
         });
     })();
 
-    return () => {
-      active = false;
-      setLive(false);
-      void supabase.removeChannel(channel);
-    };
-  }, [gameId, refetch]);
-
-  // Fallback polling while the channel is down and the screen is in front of someone.
-  useEffect(() => {
-    if (!gameId || live) return;
-
+    // Polls only while someone is looking: every 5s while the channel is down, and
+    // every 30s while it is up, as a safety net for a lost broadcast. Both send the
+    // version on screen, so they cost a few bytes when nothing changed.
     const timer = setInterval(() => {
-      if (document.visibilityState === "visible") refetch();
+      if (document.visibilityState !== "visible") return;
+      if (!liveRef.current || sync.msSinceLastSuccess() >= SAFETY_POLL_MS) sync.poll();
     }, FALLBACK_POLL_MS);
 
-    return () => clearInterval(timer);
-  }, [gameId, live, refetch]);
-
-  // Coming back to the app always shows a fresh list.
-  useEffect(() => {
-    if (!gameId) return;
-
+    // Coming back to the app always shows a fresh list.
     const onVisible = () => {
-      if (document.visibilityState === "visible") refetch();
+      if (document.visibilityState === "visible") sync.refreshIfOlderThan(REFOCUS_MIN_AGE_MS);
     };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
 
     return () => {
+      active = false;
+      sync.dispose();
+      syncRef.current = null;
+      clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
+      liveRef.current = false;
+      setLive(false);
+      void supabase.removeChannel(channel);
     };
-  }, [gameId, refetch]);
+  }, [gameId, applyState]);
 
-  // The moment the countdown reaches zero, ask the server instead of trusting it.
-  const openedRef = useRef(false);
-
-  useEffect(() => {
-    openedRef.current = false;
-  }, [gameId]);
-
-  useEffect(() => {
-    const game = state.game;
-    if (!game || game.is_open || game.status === "canceled") return;
-    if (openedRef.current) return;
-
-    if (serverNow >= new Date(game.list_opens_at).getTime()) {
-      openedRef.current = true;
-      refetch();
-    }
-  }, [serverNow, state.game, refetch]);
+  const refetch = useCallback(() => syncRef.current?.refresh(), []);
 
   return { state, serverNow, live, refetch, applyState };
 }
