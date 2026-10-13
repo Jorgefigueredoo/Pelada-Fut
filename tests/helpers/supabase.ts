@@ -190,6 +190,7 @@ export async function readSignups(gameId: string) {
 
 export type GameState = {
   server_time: string;
+  version: number;
   game: {
     id: string;
     starts_at: string;
