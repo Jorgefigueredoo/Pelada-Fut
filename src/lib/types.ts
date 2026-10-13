@@ -66,9 +66,30 @@ export type MySignup = {
 /** Everything a client needs for one pelada, including the server clock. */
 export type GameState = {
   server_time: string;
+  /**
+   * Bumped by the database on every change to this list or pelada. A response with
+   * a lower version than the one on screen arrived late and is dropped. Profile
+   * edits (nickname, photo) do not bump it; they show on the next change.
+   */
+  version: number;
   game: Game | null;
   entries: ListEntry[];
   my_signup: MySignup | null;
+};
+
+/** get_game_state's answer when the caller already has the current version. */
+export type GameStateUnchanged = {
+  server_time: string;
+  version: number;
+  unchanged: true;
+};
+
+/** The Realtime broadcast payload: a nudge, never the list itself. */
+export type ListChangedPayload = {
+  game_id: string;
+  version?: number;
+  /** How long the database holds back the next broadcast for this pelada. */
+  quiet_ms?: number;
 };
 
 /** Home screen: every upcoming pelada, not just the nearest one. */
