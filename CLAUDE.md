@@ -80,6 +80,17 @@ passando. O banco local precisa estar de pé para os testes.
     cliente. O sino (`src/components/layout/notification-bell.tsx`) faz
     polling a cada 30s enquanto a aba está visível; sem Realtime, sem Service
     Worker, sem depender de nada acontecer com o app fechado.
+14. **Nunca um broadcast por mudança na lista.** No plano Free o Realtime aceita 100
+    mensagens/s e cada broadcast custa uma por celular conectado: com 100 celulares
+    abertos na abertura da lista, um broadcast por confirmação derruba todas as
+    conexões. `_broadcast_game` (o fim de toda escrita) sobe `games.list_version` e
+    manda no máximo um broadcast por pelada a cada `quiet_ms`; quem recebe continua
+    consultando até um fetch começar depois dessa janela (`src/lib/list-sync.ts`),
+    então nada se perde. Toda consulta manda a versão que já tem e recebe
+    `unchanged` quando nada mudou; resposta com versão menor que a da tela é
+    descartada. Não ponha a lista no payload do broadcast e não faça os celulares
+    buscarem todos no mesmo instante (nem quando a contagem regressiva zera): os
+    fetches disparados por broadcast são espalhados de propósito.
 
 ## Fora do escopo
 
