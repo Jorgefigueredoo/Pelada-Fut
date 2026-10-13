@@ -6,10 +6,13 @@ import { createClient } from "@/lib/supabase/server";
 import type { UpcomingGames } from "@/lib/types";
 
 export default async function HomePage() {
-  const profile = await requireApprovedProfile();
-
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_upcoming_games");
+  // In parallel: the database checks approval inside get_upcoming_games anyway, and
+  // an unapproved user is redirected before anything they could not see is shown.
+  const [profile, { data, error }] = await Promise.all([
+    requireApprovedProfile(),
+    supabase.rpc("get_upcoming_games"),
+  ]);
   const upcoming = data as UpcomingGames | null;
   const games = upcoming?.games ?? [];
 
