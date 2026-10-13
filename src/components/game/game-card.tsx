@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCountdown, formatGameDateTime } from "@/lib/datetime";
 import { friendlyError } from "@/lib/errors";
+import { isRetryableWriteError, WRITE_ATTEMPTS, writeRetryDelay } from "@/lib/list-sync";
 import { createClient } from "@/lib/supabase/client";
 import type { GameState } from "@/lib/types";
 import { useGameState } from "@/lib/use-game-state";
@@ -42,16 +43,34 @@ export function GameCard({
     );
   }
 
-  /** The screen only says "confirmado" after the server says so. No optimistic update. */
+  /**
+   * The screen only says "confirmado" after the server says so. No optimistic update.
+   * A dropped connection or an overloaded moment at the opening is retried quietly
+   * (both functions are idempotent) before the player ever sees an error.
+   */
   async function call(action: "join_game" | "leave_game") {
     setBusy(action === "join_game" ? "join" : "leave");
     setError(undefined);
 
     const supabase = createClient();
-    const { data, error: rpcError } = await supabase.rpc(action, { p_game_id: game!.id });
+    for (let attempt = 1; ; attempt += 1) {
+      const sentAt = Date.now();
+      const { data, error: rpcError, status } = await supabase.rpc(action, {
+        p_game_id: game!.id,
+      });
+      const receivedAt = Date.now();
 
-    if (rpcError) setError(friendlyError(rpcError));
-    else if (data) applyState(data as GameState);
+      if (!rpcError && data) {
+        applyState(data as GameState, { sentAt, receivedAt });
+        break;
+      }
+      if (attempt < WRITE_ATTEMPTS && isRetryableWriteError(rpcError, status)) {
+        await new Promise((resolve) => setTimeout(resolve, writeRetryDelay(attempt)));
+        continue;
+      }
+      setError(friendlyError(rpcError));
+      break;
+    }
 
     setBusy(null);
     setConfirmingLeave(false);
