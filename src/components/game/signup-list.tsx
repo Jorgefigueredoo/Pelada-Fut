@@ -1,6 +1,8 @@
 import { ShieldCheck } from "lucide-react";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { avatarUrl } from "@/lib/avatar";
 import { formatTimeWithSeconds } from "@/lib/datetime";
 import { duplicatedNicknames, entryLabel, type ListEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -91,6 +93,14 @@ function Section({
                 <span className="text-muted-foreground w-6 shrink-0 text-sm tabular-nums">
                   {number}
                 </span>
+
+                <Avatar size="sm" className="shrink-0">
+                  <AvatarImage
+                    src={avatarUrl(entry.avatar_path, entry.avatar_updated_at) ?? undefined}
+                    alt=""
+                  />
+                  <AvatarFallback>{entry.nickname.slice(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
 
                 <span className="min-w-0 flex-1 truncate">
                   <span className={cn("truncate", isMe && "font-semibold")}>
