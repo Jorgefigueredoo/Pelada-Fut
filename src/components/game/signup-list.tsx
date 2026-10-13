@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { ShieldCheck } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,8 +11,11 @@ import { cn } from "@/lib/utils";
 /**
  * The transparency that ends the argument: position, nickname and the confirmation
  * time down to the second, the same for everyone.
+ *
+ * Memoized because the card above it re-renders every second for the countdown, and
+ * a hundred rows with photos have no reason to follow along.
  */
-export function SignupList({
+export const SignupList = memo(function SignupList({
   entries,
   currentUserId,
   slots,
@@ -48,7 +52,7 @@ export function SignupList({
       )}
     </div>
   );
-}
+});
 
 function Section({
   title,
