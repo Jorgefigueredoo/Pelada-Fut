@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AvatarForm } from "@/components/profile/avatar-form";
 import { PasswordForm } from "@/components/profile/password-form";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { SubmitButton } from "@/components/submit-button";
@@ -20,7 +21,8 @@ export default async function ProfilePage() {
         <CardHeader>
           <CardTitle>Seus dados</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          <AvatarForm profile={profile} />
           <ProfileForm profile={profile} />
         </CardContent>
       </Card>
