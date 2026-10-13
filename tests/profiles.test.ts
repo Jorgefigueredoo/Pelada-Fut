@@ -94,6 +94,111 @@ describe("profiles and approval", () => {
     });
   });
 
+  describe("update_my_avatar", () => {
+    let pending: TestUser;
+    let approved: TestUser;
+    let other: TestUser;
+
+    beforeAll(async () => {
+      pending = await createTestUser();
+      approved = await createTestUser();
+      other = await createTestUser();
+      created.push(pending.id, approved.id, other.id);
+      await approve(approved.id);
+      await approve(other.id);
+    });
+
+    it("lets an approved player point their own profile at their own avatar path", async () => {
+      const { data, error } = await approved.client.rpc("update_my_avatar", {
+        p_avatar_path: `${approved.id}/avatar.webp`,
+      });
+      expect(error).toBeNull();
+      expect((data as { avatar_path: string }).avatar_path).toBe(`${approved.id}/avatar.webp`);
+      expect((data as { avatar_updated_at: string | null }).avatar_updated_at).not.toBeNull();
+
+      const { data: row } = await adminClient()
+        .from("profiles")
+        .select("avatar_path, avatar_updated_at")
+        .eq("id", approved.id)
+        .single();
+      expect(row?.avatar_path).toBe(`${approved.id}/avatar.webp`);
+    });
+
+    it("clears the avatar and its timestamp when the path is null", async () => {
+      await approved.client.rpc("update_my_avatar", {
+        p_avatar_path: `${approved.id}/avatar.webp`,
+      });
+
+      const { data, error } = await approved.client.rpc("update_my_avatar", {
+        p_avatar_path: null,
+      });
+      expect(error).toBeNull();
+      expect((data as { avatar_path: string | null }).avatar_path).toBeNull();
+      expect((data as { avatar_updated_at: string | null }).avatar_updated_at).toBeNull();
+    });
+
+    it("refuses a path that does not match the caller's own id", async () => {
+      const { error } = await approved.client.rpc("update_my_avatar", {
+        p_avatar_path: `${other.id}/avatar.webp`,
+      });
+      expect(error?.message).toContain("FORBIDDEN");
+    });
+
+    it("refuses a pending player", async () => {
+      const { error } = await pending.client.rpc("update_my_avatar", {
+        p_avatar_path: `${pending.id}/avatar.webp`,
+      });
+      expect(error?.message).toContain("NOT_APPROVED");
+    });
+  });
+
+  describe("avatars storage bucket", () => {
+    let approved: TestUser;
+    let other: TestUser;
+
+    beforeAll(async () => {
+      approved = await createTestUser();
+      other = await createTestUser();
+      created.push(approved.id, other.id);
+      await approve(approved.id);
+      await approve(other.id);
+    });
+
+    afterAll(async () => {
+      await adminClient()
+        .storage.from("avatars")
+        .remove([`${approved.id}/avatar.webp`]);
+    });
+
+    const file = new Blob([new Uint8Array([1, 2, 3, 4])], { type: "image/webp" });
+
+    it("lets a player upload to their own path", async () => {
+      const { error } = await approved.client.storage
+        .from("avatars")
+        .upload(`${approved.id}/avatar.webp`, file, { upsert: true, contentType: "image/webp" });
+      expect(error).toBeNull();
+    });
+
+    it("refuses a player uploading under someone else's id", async () => {
+      const { error } = await approved.client.storage
+        .from("avatars")
+        .upload(`${other.id}/avatar.webp`, file, { upsert: true, contentType: "image/webp" });
+      expect(error).not.toBeNull();
+    });
+
+    it("serves the uploaded file from the public URL", async () => {
+      await approved.client.storage
+        .from("avatars")
+        .upload(`${approved.id}/avatar.webp`, file, { upsert: true, contentType: "image/webp" });
+
+      const { data } = approved.client.storage.from("avatars").getPublicUrl(
+        `${approved.id}/avatar.webp`,
+      );
+      const response = await fetch(data.publicUrl);
+      expect(response.status).toBe(200);
+    });
+  });
+
   describe("admin actions", () => {
     let admin: TestUser;
     let player: TestUser;
