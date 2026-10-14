@@ -1,8 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowUp, CalendarX2, Loader2, MapPin, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowUp,
+  CalendarX2,
+  Loader2,
+  MapPin,
+  PartyPopper,
+  RefreshCw,
+  Trophy,
+} from "lucide-react";
 
+import { Confetti } from "@/components/game/confetti";
 import { SignupList } from "@/components/game/signup-list";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +23,7 @@ import { isRetryableWriteError, WRITE_ATTEMPTS, writeRetryDelay } from "@/lib/li
 import { createClient } from "@/lib/supabase/client";
 import type { GameState } from "@/lib/types";
 import { useGameState } from "@/lib/use-game-state";
+import { cn } from "@/lib/utils";
 
 export function GameCard({
   initialState,
@@ -26,6 +36,14 @@ export function GameCard({
   const [busy, setBusy] = useState<"join" | "leave" | null>(null);
   const [error, setError] = useState<string>();
   const [confirmingLeave, setConfirmingLeave] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
+  const celebrateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (celebrateTimer.current) clearTimeout(celebrateTimer.current);
+    };
+  }, []);
 
   const game = state.game;
   const mine = state.my_signup;
@@ -61,7 +79,13 @@ export function GameCard({
       const receivedAt = Date.now();
 
       if (!rpcError && data) {
-        applyState(data as GameState, { sentAt, receivedAt });
+        const next = data as GameState;
+        applyState(next, { sentAt, receivedAt });
+        if (action === "join_game" && next.my_signup?.status === "confirmed") {
+          setCelebrating(true);
+          if (celebrateTimer.current) clearTimeout(celebrateTimer.current);
+          celebrateTimer.current = setTimeout(() => setCelebrating(false), 2400);
+        }
         break;
       }
       if (attempt < WRITE_ATTEMPTS && isRetryableWriteError(rpcError, status)) {
@@ -82,23 +106,54 @@ export function GameCard({
   const started = msUntilStart <= 0;
   const beforeOpening = msUntilOpen > 0;
   const waitlistPosition = mine ? Math.max(1, mine.position - game.slots) : 0;
+  const confirmedCount = state.entries.filter((entry) => entry.status === "confirmed").length;
+  const fillPercent = Math.min(100, Math.round((confirmedCount / game.slots) * 100));
 
   return (
     <div className="space-y-5">
-      <Card>
-        <CardContent className="space-y-4">
-          <div className="space-y-1">
-            <p className="text-lg leading-tight font-semibold">
-              {formatGameDateTime(game.starts_at)}
+      <Card className="relative py-0">
+        {celebrating && <Confetti />}
+
+        <div className="bg-pitch-stripes space-y-1.5 px-4 py-5 text-white">
+          <p className="text-xl leading-tight font-semibold">
+            {formatGameDateTime(game.starts_at)}
+          </p>
+          {game.location && (
+            <p className="flex items-center gap-1.5 text-sm text-white/80">
+              <MapPin className="size-4 shrink-0" aria-hidden />
+              {game.location}
             </p>
-            {game.location && (
-              <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
-                <MapPin className="size-4 shrink-0" aria-hidden />
-                {game.location}
-              </p>
-            )}
-            <p className="text-muted-foreground text-sm">{game.slots} vagas</p>
-          </div>
+          )}
+          <p className="text-sm text-white/80">{game.slots} vagas</p>
+        </div>
+
+        <CardContent className="space-y-4 pt-1 pb-4">
+          {!canceled && (
+            <div className="space-y-1.5">
+              <div className="text-muted-foreground flex items-center justify-between text-xs">
+                <span>
+                  {confirmedCount} de {game.slots} confirmados
+                </span>
+                <span className="tabular-nums">{fillPercent}%</span>
+              </div>
+              <div
+                role="progressbar"
+                aria-label="Vagas preenchidas"
+                aria-valuemin={0}
+                aria-valuemax={game.slots}
+                aria-valuenow={Math.min(confirmedCount, game.slots)}
+                className="bg-muted h-2.5 overflow-hidden rounded-full"
+              >
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all duration-700 ease-out",
+                    fillPercent >= 100 ? "bg-gold" : "bg-primary",
+                  )}
+                  style={{ width: `${fillPercent}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           {canceled ? (
             <Alert variant="destructive">
@@ -111,7 +166,7 @@ export function GameCard({
           ) : (
             <>
               {mine?.promoted_at && mine.status === "confirmed" && (
-                <Alert>
+                <Alert className="animate-pop">
                   <ArrowUp />
                   <AlertTitle>Você subiu da lista de espera</AlertTitle>
                   <AlertDescription>
@@ -121,7 +176,7 @@ export function GameCard({
               )}
 
               {mine?.demoted_at && mine.status === "waitlist" && (
-                <Alert variant="destructive">
+                <Alert variant="destructive" className="animate-pop">
                   <AlertTitle>Você voltou para a lista de espera</AlertTitle>
                   <AlertDescription>
                     O número de vagas mudou. Você é o {waitlistPosition}º da fila.
@@ -138,7 +193,7 @@ export function GameCard({
               />
 
               {error && (
-                <Alert variant="destructive" role="alert">
+                <Alert variant="destructive" role="alert" className="animate-pop">
                   <AlertDescription className="space-y-2">
                     <span className="block">{error}</span>
                     <Button
@@ -156,7 +211,10 @@ export function GameCard({
               {!started && !mine && (
                 <Button
                   size="lg"
-                  className="h-14 w-full text-base"
+                  className={cn(
+                    "h-14 w-full rounded-2xl text-base font-semibold",
+                    !beforeOpening && busy === null && "animate-pulse-ring",
+                  )}
                   disabled={beforeOpening || busy !== null}
                   onClick={() => call("join_game")}
                 >
@@ -177,7 +235,7 @@ export function GameCard({
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-12 w-full"
+                  className="h-12 w-full rounded-2xl"
                   onClick={() => setConfirmingLeave(true)}
                 >
                   Desistir
@@ -185,7 +243,7 @@ export function GameCard({
               )}
 
               {!started && mine && confirmingLeave && (
-                <div className="space-y-2">
+                <div className="animate-pop space-y-2">
                   <p className="text-muted-foreground text-sm">
                     {mine.status === "confirmed"
                       ? "Sua vaga vai para o primeiro da lista de espera. Tem certeza?"
@@ -194,7 +252,7 @@ export function GameCard({
                   <div className="flex gap-2">
                     <Button
                       variant="destructive"
-                      className="h-12 flex-1"
+                      className="h-12 flex-1 rounded-2xl"
                       disabled={busy !== null}
                       onClick={() => call("leave_game")}
                     >
@@ -209,7 +267,7 @@ export function GameCard({
                     </Button>
                     <Button
                       variant="ghost"
-                      className="h-12 flex-1"
+                      className="h-12 flex-1 rounded-2xl"
                       onClick={() => setConfirmingLeave(false)}
                     >
                       Não
@@ -229,11 +287,18 @@ export function GameCard({
       </Card>
 
       <div className="flex items-center justify-between">
-        <Badge variant={live ? "secondary" : "outline"} className="gap-1.5">
-          <span
-            className={`size-1.5 rounded-full ${live ? "bg-emerald-500" : "bg-muted-foreground"}`}
-            aria-hidden
-          />
+        <Badge variant={live ? "secondary" : "outline"} className="h-6 gap-2 px-2.5">
+          <span className="relative flex size-2" aria-hidden>
+            {live && (
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-70" />
+            )}
+            <span
+              className={cn(
+                "relative inline-flex size-2 rounded-full",
+                live ? "bg-emerald-500" : "bg-muted-foreground",
+              )}
+            />
+          </span>
           {live ? "Ao vivo" : "Atualizando a cada 5s"}
         </Badge>
         <Button variant="ghost" size="sm" onClick={refetch}>
@@ -251,6 +316,17 @@ export function GameCard({
   );
 }
 
+/** Days, hours, minutes and seconds of a duration, for the boxes of the countdown. */
+function countdownParts(milliseconds: number) {
+  const total = Math.max(0, Math.floor(milliseconds / 1000));
+  return [
+    { value: Math.floor(total / 86_400), label: "dias" },
+    { value: Math.floor((total % 86_400) / 3600), label: "horas" },
+    { value: Math.floor((total % 3600) / 60), label: "min" },
+    { value: total % 60, label: "seg" },
+  ];
+}
+
 /** The one line that has to be understandable in a second. */
 function StatusBlock({
   beforeOpening,
@@ -266,19 +342,37 @@ function StatusBlock({
   waitlistPosition: number;
 }) {
   if (beforeOpening) {
+    const parts = countdownParts(msUntilOpen).filter(
+      (part, index) => index > 0 || part.value > 0,
+    );
+
     return (
-      <div className="bg-muted rounded-lg p-4 text-center">
+      <div className="bg-muted rounded-2xl p-4 text-center">
         <p className="text-muted-foreground text-sm">Lista abre em</p>
-        <p className="font-mono text-3xl font-semibold tabular-nums">
-          {formatCountdown(msUntilOpen)}
-        </p>
+        <p className="sr-only">{formatCountdown(msUntilOpen)}</p>
+        <div className="mt-2 flex justify-center gap-2" aria-hidden>
+          {parts.map((part) => (
+            <div
+              key={part.label}
+              className="bg-card ring-foreground/8 min-w-14 rounded-xl px-2 py-2 shadow-sm ring-1"
+            >
+              <p className="font-mono text-2xl leading-none font-semibold tabular-nums">
+                {String(part.value).padStart(2, "0")}
+              </p>
+              <p className="text-muted-foreground mt-1 text-[10px] tracking-wide uppercase">
+                {part.label}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (mine?.status === "confirmed") {
     return (
-      <div className="rounded-lg bg-emerald-500/10 p-4 text-center">
+      <div className="animate-pop flex items-center justify-center gap-3 rounded-2xl bg-emerald-500/10 p-4 text-center ring-1 ring-emerald-500/20">
+        <Trophy className="text-gold size-6 shrink-0" aria-hidden />
         <p className="text-lg font-semibold text-emerald-700 dark:text-emerald-400">
           Você está confirmado, nº {mine.position}
         </p>
@@ -288,7 +382,7 @@ function StatusBlock({
 
   if (mine?.status === "waitlist") {
     return (
-      <div className="rounded-lg bg-amber-500/10 p-4 text-center">
+      <div className="animate-pop rounded-2xl bg-amber-500/10 p-4 text-center ring-1 ring-amber-500/20">
         <p className="text-lg font-semibold text-amber-700 dark:text-amber-500">
           Lista de espera, {waitlistPosition}º da fila
         </p>
@@ -299,9 +393,12 @@ function StatusBlock({
   if (started) return null;
 
   return (
-    <div className="bg-muted rounded-lg p-4 text-center">
-      <p className="font-medium">Lista aberta</p>
-      <p className="text-muted-foreground text-sm">Confirme sua presença abaixo.</p>
+    <div className="bg-primary/10 flex items-center justify-center gap-2 rounded-2xl p-4 text-center">
+      <PartyPopper className="text-primary size-5 shrink-0" aria-hidden />
+      <div>
+        <p className="font-medium">Lista aberta</p>
+        <p className="text-muted-foreground text-sm">Confirme sua presença abaixo.</p>
+      </div>
     </div>
   );
 }
