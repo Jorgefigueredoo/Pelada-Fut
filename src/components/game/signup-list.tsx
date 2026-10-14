@@ -81,7 +81,7 @@ function Section({
       {entries.length === 0 ? (
         <p className="text-muted-foreground text-sm">{emptyLabel}</p>
       ) : (
-        <ol className="divide-border divide-y rounded-lg border">
+        <ol className="divide-border bg-card divide-y overflow-hidden rounded-2xl shadow-sm ring-1 ring-foreground/8">
           {entries.map((entry, index) => {
             const isMe = entry.user_id === currentUserId;
             const number = startAt !== undefined ? startAt + index : entry.position;
@@ -89,16 +89,28 @@ function Section({
             return (
               <li
                 key={entry.user_id}
+                style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5",
-                  isMe && "bg-primary/5",
+                  "animate-in fade-in-0 slide-in-from-bottom-2 fill-mode-backwards flex items-center gap-3 px-3 py-2.5 duration-300",
+                  isMe && "bg-primary/10",
                 )}
               >
-                <span className="text-muted-foreground w-6 shrink-0 text-sm tabular-nums">
+                <span
+                  className={cn(
+                    "grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold tabular-nums",
+                    startAt === undefined && number === 1 && "bg-gold text-black/80",
+                    startAt === undefined && number === 2 && "bg-zinc-300 text-black/75",
+                    startAt === undefined && number === 3 && "bg-amber-600/80 text-white",
+                    (startAt !== undefined || number > 3) && "bg-muted text-muted-foreground",
+                  )}
+                >
                   {number}
                 </span>
 
-                <Avatar size="sm" className="shrink-0">
+                <Avatar
+                  size="sm"
+                  className={cn("shrink-0", isMe && "ring-primary ring-2 ring-offset-1 ring-offset-card")}
+                >
                   <AvatarImage
                     src={avatarUrl(entry.avatar_path, entry.avatar_updated_at) ?? undefined}
                     alt=""
