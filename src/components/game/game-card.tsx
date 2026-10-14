@@ -32,7 +32,8 @@ export function GameCard({
   initialState: GameState;
   currentUserId: string;
 }) {
-  const { state, serverNow, live, refetch, applyState } = useGameState(initialState);
+  const { state, serverNow, live, refreshing, refetch, applyState } =
+    useGameState(initialState);
   const [busy, setBusy] = useState<"join" | "leave" | null>(null);
   const [error, setError] = useState<string>();
   const [confirmingLeave, setConfirmingLeave] = useState(false);
@@ -301,8 +302,8 @@ export function GameCard({
           </span>
           {live ? "Ao vivo" : "Atualizando a cada 5s"}
         </Badge>
-        <Button variant="ghost" size="sm" onClick={refetch}>
-          <RefreshCw className="size-4" aria-hidden />
+        <Button variant="ghost" size="sm" onClick={refetch} disabled={refreshing}>
+          <RefreshCw className={cn("size-4", refreshing && "animate-spin")} aria-hidden />
           Atualizar
         </Button>
       </div>
