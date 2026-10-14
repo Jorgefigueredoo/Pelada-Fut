@@ -18,7 +18,7 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6">
-      <p className="text-muted-foreground text-sm">Olá, {profile.nickname}</p>
+      <p className="text-2xl font-semibold tracking-tight">Olá, {profile.nickname}</p>
 
       {error || !upcoming ? (
         <Alert variant="destructive">
