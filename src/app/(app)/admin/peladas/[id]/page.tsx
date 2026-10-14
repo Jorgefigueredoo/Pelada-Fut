@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
+import { DeleteGameButton } from "@/components/admin/delete-game-button";
 import { GameForm } from "@/components/admin/game-form";
 import { GameStatusButton } from "@/components/admin/game-status-button";
 import { SignupList } from "@/components/game/signup-list";
@@ -60,7 +61,10 @@ export default async function AdminGamePage({
         slots={game.slots}
       />
 
-      <GameStatusButton gameId={game.id} status={game.status} />
+      <div className="space-y-2">
+        <GameStatusButton gameId={game.id} status={game.status} />
+        <DeleteGameButton gameId={game.id} />
+      </div>
     </div>
   );
 }
