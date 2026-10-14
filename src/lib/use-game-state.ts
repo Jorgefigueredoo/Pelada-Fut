@@ -21,6 +21,8 @@ type UseGameState = {
   /** Estimated database time in milliseconds. Never the device clock. */
   serverNow: number;
   live: boolean;
+  /** True from a tap on Atualizar until the fetch it started comes back. */
+  refreshing: boolean;
   refetch: () => void;
   applyState: (next: GameState | GameStateUnchanged, timing: ResponseTiming) => void;
 };
@@ -44,6 +46,7 @@ type UseGameState = {
 export function useGameState(initialState: GameState): UseGameState {
   const [state, setState] = useState(initialState);
   const [live, setLive] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   // The countdown runs off this, which is the database clock carried in every
   // response, plus the time elapsed on the device since.
   const [serverNow, setServerNow] = useState(() =>
@@ -98,23 +101,25 @@ export function useGameState(initialState: GameState): UseGameState {
     const supabase = createClient();
     const sync = new ListSync({
       currentVersion: () => versionRef.current,
-      fetch: async () => {
-        const sentAt = Date.now();
-        const { data, error } = await supabase.rpc("get_game_state", {
-          p_game_id: gameId,
-          p_known_version: versionRef.current ?? undefined,
-        });
-        if (error) return false;
-        if (data === null) {
-          // The pelada was deleted while this screen was open: show the empty state
-          // instead of retrying a list that no longer exists.
-          setState((current) => ({ ...current, game: null, entries: [], my_signup: null }));
-          return true;
-        }
-        applyState(data as GameState | GameStateUnchanged, { sentAt, receivedAt: Date.now() });
-        return true;
-      },
+      fetch: () => load().finally(() => setRefreshing(false)),
     });
+
+    async function load(): Promise<boolean> {
+      const sentAt = Date.now();
+      const { data, error } = await supabase.rpc("get_game_state", {
+        p_game_id: gameId,
+        p_known_version: versionRef.current ?? undefined,
+      });
+      if (error) return false;
+      if (data === null) {
+        // The pelada was deleted while this screen was open: show the empty state
+        // instead of retrying a list that no longer exists.
+        setState((current) => ({ ...current, game: null, entries: [], my_signup: null }));
+        return true;
+      }
+      applyState(data as GameState | GameStateUnchanged, { sentAt, receivedAt: Date.now() });
+      return true;
+    }
     syncRef.current = sync;
 
     // Realtime: one private channel per pelada.
@@ -167,7 +172,11 @@ export function useGameState(initialState: GameState): UseGameState {
     };
   }, [gameId, applyState]);
 
-  const refetch = useCallback(() => syncRef.current?.refresh(), []);
+  const refetch = useCallback(() => {
+    if (!syncRef.current) return;
+    setRefreshing(true);
+    syncRef.current.refresh();
+  }, []);
 
-  return { state, serverNow, live, refetch, applyState };
+  return { state, serverNow, live, refreshing, refetch, applyState };
 }
