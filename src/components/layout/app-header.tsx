@@ -1,7 +1,7 @@
-import { Goal, LogOut } from "lucide-react";
+import { Goal } from "lucide-react";
 
 import { NotificationBell } from "@/components/layout/notification-bell";
-import { Button } from "@/components/ui/button";
+import { SignOutButton } from "@/components/layout/sign-out-button";
 import { signOutAction } from "@/lib/actions/auth";
 import { APP_NAME } from "@/lib/constants";
 
@@ -20,9 +20,7 @@ export function AppHeader() {
         <div className="flex items-center gap-1">
           <NotificationBell />
           <form action={signOutAction}>
-            <Button type="submit" variant="ghost" size="icon" aria-label="Sair">
-              <LogOut className="size-5" aria-hidden />
-            </Button>
+            <SignOutButton />
           </form>
         </div>
       </div>
