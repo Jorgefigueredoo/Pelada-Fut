@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, Users } from "lucide-react";
 
+import { LinkPending } from "@/components/layout/link-pending";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -25,7 +26,7 @@ export function AdminNav() {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex h-11 items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors",
+              "relative flex h-11 items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors",
               active
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
@@ -33,6 +34,7 @@ export function AdminNav() {
           >
             <Icon className="size-4" aria-hidden />
             {label}
+            <LinkPending />
           </Link>
         );
       })}
