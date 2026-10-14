@@ -3,7 +3,13 @@ import type { AppNotification } from "@/lib/types";
 
 /** Turns a stable notification type (+ its game, when there is one) into a sentence. */
 export function notificationMessage(notification: AppNotification): string {
-  const when = notification.game ? formatGameDateTime(notification.game.starts_at) : null;
+  // A deleted pelada has no row left to join, so its notification carries the date.
+  const deletedStart = notification.meta.starts_at;
+  const when = notification.game
+    ? formatGameDateTime(notification.game.starts_at)
+    : typeof deletedStart === "string"
+      ? formatGameDateTime(deletedStart)
+      : null;
   const position = notification.meta.position;
 
   switch (notification.type) {
