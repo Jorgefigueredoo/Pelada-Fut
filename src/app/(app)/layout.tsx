@@ -9,7 +9,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const profile = await requireApprovedProfile();
 
   return (
-    <div className="min-h-dvh pb-16">
+    <div className="min-h-dvh pb-28">
       <AppHeader />
       <div className="mx-auto w-full max-w-md px-4 py-6">{children}</div>
       <MainNav isAdmin={profile.role === "admin"} />
