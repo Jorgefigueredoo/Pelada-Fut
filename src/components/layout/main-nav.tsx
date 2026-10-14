@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, Shield, User, Users } from "lucide-react";
 
+import { LinkPending } from "@/components/layout/link-pending";
 import { cn } from "@/lib/utils";
 
 const PLAYER_LINKS = [
@@ -30,7 +31,7 @@ export function MainNav({ isAdmin }: { isAdmin: boolean }) {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-medium transition-all duration-200 active:scale-95",
+                  "relative flex h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-medium transition-all duration-200 active:scale-95",
                   active
                     ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -41,6 +42,7 @@ export function MainNav({ isAdmin }: { isAdmin: boolean }) {
                   aria-hidden
                 />
                 {label}
+                <LinkPending />
               </Link>
             </li>
           );
