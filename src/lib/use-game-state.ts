@@ -104,7 +104,13 @@ export function useGameState(initialState: GameState): UseGameState {
           p_game_id: gameId,
           p_known_version: versionRef.current ?? undefined,
         });
-        if (error || !data) return false;
+        if (error) return false;
+        if (data === null) {
+          // The pelada was deleted while this screen was open: show the empty state
+          // instead of retrying a list that no longer exists.
+          setState((current) => ({ ...current, game: null, entries: [], my_signup: null }));
+          return true;
+        }
         applyState(data as GameState | GameStateUnchanged, { sentAt, receivedAt: Date.now() });
         return true;
       },
