@@ -90,3 +90,19 @@ export async function setGameStatusAction(
   revalidatePath("/");
   return {};
 }
+
+/**
+ * Deletes the pelada for good: the list and its history go with it. Canceling is the
+ * reversible option; this one is not, so the button asks twice.
+ */
+export async function deleteGameAction(gameId: string): Promise<GameFormState> {
+  await requireAdminProfile();
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_delete_game", { p_game_id: gameId });
+  if (error) return { error: friendlyError(error) };
+
+  revalidatePath("/admin/peladas");
+  revalidatePath("/");
+  redirect("/admin/peladas");
+}
