@@ -105,6 +105,7 @@ describe("list security with the publishable key", () => {
         player.client.rpc("admin_remove_player", { p_game_id: gameId, p_user_id: player.id }),
         player.client.rpc("admin_set_game_status", { p_game_id: gameId, p_status: "canceled" }),
         player.client.rpc("admin_list_games"),
+        player.client.rpc("admin_delete_game", { p_game_id: gameId }),
         player.client.rpc("get_game_history", { p_game_id: gameId }),
         player.client.rpc("get_app_settings"),
         player.client.rpc("admin_create_game", {
@@ -191,6 +192,7 @@ describe("list security with the publishable key", () => {
         anon.rpc("get_game_state", { p_game_id: gameId }),
         anon.rpc("get_next_game"),
         anon.rpc("get_upcoming_games"),
+        anon.rpc("admin_delete_game", { p_game_id: gameId }),
       ]);
 
       for (const call of calls) {
