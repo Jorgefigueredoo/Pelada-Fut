@@ -221,3 +221,18 @@ export function formatRelative(iso: string, nowMs: number = Date.now()): string 
   if (days < 7) return `há ${days}d`;
   return formatShort(iso);
 }
+
+const badgeFormatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: TIME_ZONE,
+  weekday: "short",
+  day: "2-digit",
+  month: "short",
+});
+
+/** { weekday: "qua", day: "14", month: "out" } for a calendar-page badge. */
+export function dateBadge(iso: string): { weekday: string; day: string; month: string } {
+  const parts = badgeFormatter.formatToParts(new Date(iso));
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    (parts.find((part) => part.type === type)?.value ?? "").replace(".", "");
+  return { weekday: get("weekday"), day: get("day"), month: get("month") };
+}
