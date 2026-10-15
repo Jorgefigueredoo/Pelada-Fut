@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  dateBadge,
   formatCountdown,
   formatGameDateTime,
   formatTimeWithSeconds,
@@ -95,5 +96,10 @@ describe("datetime in America/Sao_Paulo", () => {
     it("rejects a malformed value instead of guessing", () => {
       expect(() => fromDateTimeLocalValue("nao-e-data")).toThrow();
     });
+  });
+
+  it("builds a calendar badge in the zone, not the machine zone", () => {
+    // 01:30 UTC on Thursday is still Wednesday 22:30 in São Paulo.
+    expect(dateBadge("2026-10-15T01:30:00Z")).toEqual({ weekday: "qua", day: "14", month: "out" });
   });
 });
