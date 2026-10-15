@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  DEFAULT_QUIET_MS,
   HOT_POLL_MS,
   isRetryableWriteError,
   ListSync,
@@ -13,7 +14,8 @@ import {
   writeRetryDelay,
 } from "@/lib/list-sync";
 
-const QUIET_MS = 3000;
+/** The window the database really uses; every expectation below is derived from it. */
+const QUIET_MS = DEFAULT_QUIET_MS;
 
 /** One phone: records when each fetch started and shows whatever the "server" has. */
 function phone(options: {
@@ -101,10 +103,10 @@ describe("ListSync", () => {
 
     // t=0: a join, and its broadcast.
     p.sync.onBroadcast(1, QUIET_MS);
-    await vi.advanceTimersByTimeAsync(1500);
+    await vi.advanceTimersByTimeAsync(QUIET_MS / 2);
     expect(p.shown()).toBe(1);
 
-    // t=1.5s: another join. The database holds this broadcast back.
+    // Halfway through the window: another join. The database holds its broadcast back.
     server = 2;
 
     await vi.advanceTimersByTimeAsync(10_000);
@@ -124,7 +126,7 @@ describe("ListSync", () => {
     expect(p.starts).toHaveLength(settled);
   });
 
-  it("polls about every two seconds during a sustained rush", async () => {
+  it("polls about once per quiet window during a sustained rush", async () => {
     let server = 0;
     const p = phone({ serverVersion: () => server });
 
@@ -140,9 +142,10 @@ describe("ListSync", () => {
     }
     await vi.advanceTimersByTimeAsync(QUIET_MS + HOT_POLL_MS + SPREAD_MS);
 
-    // Fresh at the end, after a dozen fetches for 200 changes instead of one per change.
+    // Fresh at the end, after about one fetch per window for 200 changes, instead of
+    // one per change.
     expect(p.shown()).toBe(server);
-    expect(p.starts.length).toBeLessThanOrEqual(12);
+    expect(p.starts.length).toBeLessThanOrEqual(20_000 / QUIET_MS + 3);
     const gaps = p.starts.slice(1).map((start, index) => start - p.starts[index]);
     expect(Math.min(...gaps)).toBeGreaterThanOrEqual(SPREAD_MS / 2);
   });
@@ -151,7 +154,7 @@ describe("ListSync", () => {
     const p = phone({ startVersion: 5, serverVersion: () => 5 });
 
     p.sync.onBroadcast(5, QUIET_MS);
-    await vi.advanceTimersByTimeAsync(HOT_POLL_MS - 1);
+    await vi.advanceTimersByTimeAsync(Math.min(HOT_POLL_MS, QUIET_MS) - 1);
     expect(p.starts).toEqual([]);
 
     await vi.advanceTimersByTimeAsync(QUIET_MS + SPREAD_MS + HOT_POLL_MS);
