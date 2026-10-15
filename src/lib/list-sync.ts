@@ -11,18 +11,22 @@
  *     every connection dropped. A change made inside that window has no broadcast of
  *     its own, so after any broadcast the phone keeps polling until one fetch has
  *     started after the window closed. Nothing is lost; it just arrives by poll.
- *   - Fetches triggered by a broadcast are spread over a second, so a hundred phones
+ *   - Fetches triggered by a broadcast are spread over half a second, so the phones
  *     do not all hit the database in the same millisecond.
  *   - Every fetch sends the version the phone already has, and the database answers
  *     "unchanged" in a few bytes when that is still current.
  */
 
 /** Used until a broadcast says otherwise; the database owns the real number. */
-export const DEFAULT_QUIET_MS = 3000;
+export const DEFAULT_QUIET_MS = 1000;
 /** How often to poll while a quiet window is open. */
 export const HOT_POLL_MS = 2000;
-/** Fetches triggered by a broadcast are spread over this much time. */
-export const SPREAD_MS = 1000;
+/**
+ * Fetches triggered by a broadcast are spread over this much time. Half a second
+ * keeps ~40 phones from landing in the same millisecond while the list still feels
+ * live; with a much larger crowd, widen it.
+ */
+export const SPREAD_MS = 500;
 /** After a reconnection every phone resubscribes at once, so spread wider. */
 export const RESUBSCRIBE_SPREAD_MS = 2000;
 /** A failed fetch is retried after this, doubling on every failure in a row. */
