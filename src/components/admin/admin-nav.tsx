@@ -17,7 +17,7 @@ export function AdminNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="bg-muted grid grid-cols-2 gap-1 rounded-lg p-1">
+    <nav className="bg-muted grid grid-cols-2 gap-1 rounded-2xl p-1">
       {LINKS.map(({ href, label, icon: Icon }) => {
         const active = pathname.startsWith(href);
         return (
@@ -26,9 +26,9 @@ export function AdminNav() {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative flex h-11 items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors",
+              "relative flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-medium transition-colors",
               active
-                ? "bg-background text-foreground shadow-sm"
+                ? "bg-card text-foreground ring-foreground/8 shadow-sm ring-1"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
