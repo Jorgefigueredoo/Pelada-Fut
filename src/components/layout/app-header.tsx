@@ -2,6 +2,7 @@ import { Goal } from "lucide-react";
 
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { SignOutButton } from "@/components/layout/sign-out-button";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { signOutAction } from "@/lib/actions/auth";
 import { APP_NAME } from "@/lib/constants";
 
@@ -17,7 +18,8 @@ export function AppHeader() {
           <span className="truncate">{APP_NAME}</span>
         </span>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
+          <ThemeToggle />
           <NotificationBell />
           <form action={signOutAction}>
             <SignOutButton />
