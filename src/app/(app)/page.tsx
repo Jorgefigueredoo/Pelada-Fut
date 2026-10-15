@@ -1,7 +1,12 @@
+import { CalendarPlus } from "lucide-react";
+
+import { EmptyState } from "@/components/empty-state";
 import { GameCard } from "@/components/game/game-card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { requireApprovedProfile } from "@/lib/auth";
+import { avatarUrl } from "@/lib/avatar";
+import { formatGameDate } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
 import type { UpcomingGames } from "@/lib/types";
 
@@ -15,10 +20,25 @@ export default async function HomePage() {
   ]);
   const upcoming = data as UpcomingGames | null;
   const games = upcoming?.games ?? [];
+  const today = formatGameDate(upcoming?.server_time ?? new Date().toISOString());
 
   return (
     <div className="space-y-6">
-      <p className="text-2xl font-semibold tracking-tight">Olá, {profile.nickname}</p>
+      <header className="animate-in fade-in-0 slide-in-from-top-2 flex items-center gap-3 duration-500">
+        <Avatar className="ring-primary/30 ring-offset-background size-12 shrink-0 ring-2 ring-offset-2">
+          <AvatarImage
+            src={avatarUrl(profile.avatar_path, profile.avatar_updated_at) ?? undefined}
+            alt=""
+          />
+          <AvatarFallback className="bg-pitch-stripes text-gold font-semibold">
+            {profile.nickname.slice(0, 2).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <p className="truncate text-2xl font-semibold tracking-tight">Olá, {profile.nickname}</p>
+          <p className="text-muted-foreground text-sm">{today}</p>
+        </div>
+      </header>
 
       {error || !upcoming ? (
         <Alert variant="destructive">
@@ -27,16 +47,13 @@ export default async function HomePage() {
           </AlertDescription>
         </Alert>
       ) : games.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center">
-            <p className="font-medium">Nenhuma pelada marcada</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Quando um admin marcar a próxima pelada, ela aparece aqui.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={CalendarPlus}
+          title="Nenhuma pelada marcada"
+          description="Quando um admin marcar a próxima pelada, ela aparece aqui com a contagem para a lista abrir."
+        />
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-10">
           {games.map((game) => (
             <GameCard
               key={game.game!.id}
