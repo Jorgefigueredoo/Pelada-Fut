@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUp,
+  CalendarPlus,
   CalendarX2,
   Loader2,
   MapPin,
@@ -11,6 +12,7 @@ import {
   Trophy,
 } from "lucide-react";
 
+import { EmptyState } from "@/components/empty-state";
 import { Confetti } from "@/components/game/confetti";
 import { SignupList } from "@/components/game/signup-list";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -51,14 +53,11 @@ export function GameCard({
 
   if (!game) {
     return (
-      <Card>
-        <CardContent className="py-10 text-center">
-          <p className="font-medium">Nenhuma pelada marcada</p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Quando um admin marcar a próxima pelada, ela aparece aqui.
-          </p>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={CalendarPlus}
+        title="Nenhuma pelada marcada"
+        description="Quando um admin marcar a próxima pelada, ela aparece aqui."
+      />
     );
   }
 
