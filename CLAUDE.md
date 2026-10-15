@@ -84,7 +84,9 @@ passando. O banco local precisa estar de pé para os testes.
     mensagens/s e cada broadcast custa uma por celular conectado: com 100 celulares
     abertos na abertura da lista, um broadcast por confirmação derruba todas as
     conexões. `_broadcast_game` (o fim de toda escrita) sobe `games.list_version` e
-    manda no máximo um broadcast por pelada a cada `quiet_ms`; quem recebe continua
+    manda no máximo um broadcast por pelada a cada `quiet_ms` (1 s, dimensionado para
+    ~40 celulares na abertura; aguenta ~90 — se o grupo crescer, aumente em
+    `_broadcast_game`); quem recebe continua
     consultando até um fetch começar depois dessa janela (`src/lib/list-sync.ts`),
     então nada se perde. Toda consulta manda a versão que já tem e recebe
     `unchanged` quando nada mudou; resposta com versão menor que a da tela é
