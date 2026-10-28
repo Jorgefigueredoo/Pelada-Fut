@@ -22,7 +22,8 @@ export function MainNav({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      <ul className="bg-card/90 mx-auto flex max-w-md gap-1 rounded-2xl p-1.5 shadow-lg shadow-foreground/10 ring-1 ring-foreground/10 backdrop-blur-lg">
+      {/* Opaque instead of blurred, for the same scrolling reason as AppHeader. */}
+      <ul className="bg-card/95 mx-auto flex max-w-md gap-1 rounded-2xl p-1.5 shadow-lg shadow-foreground/10 ring-1 ring-foreground/10">
         {links.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (

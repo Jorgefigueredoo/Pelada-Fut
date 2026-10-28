@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { ShieldCheck } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarLazyImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { avatarUrl } from "@/lib/avatar";
 import { formatTimeWithSeconds } from "@/lib/datetime";
@@ -111,10 +111,7 @@ function Section({
                   size="sm"
                   className={cn("shrink-0", isMe && "ring-primary ring-2 ring-offset-1 ring-offset-card")}
                 >
-                  <AvatarImage
-                    src={avatarUrl(entry.avatar_path, entry.avatar_updated_at) ?? undefined}
-                    alt=""
-                  />
+                  <AvatarLazyImage src={avatarUrl(entry.avatar_path, entry.avatar_updated_at)} />
                   <AvatarFallback>{entry.nickname.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
 

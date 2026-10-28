@@ -40,6 +40,39 @@ function AvatarImage({
   )
 }
 
+/**
+ * For long lists. AvatarImage preloads its picture in JavaScript after hydration,
+ * eagerly, so a hundred-row list downloaded a hundred photos at once. This is a
+ * plain <img> in the server HTML that the browser loads only near the screen.
+ * Sits over an AvatarFallback, which shows until (or instead of) the photo.
+ */
+function AvatarLazyImage({
+  className,
+  src,
+  alt = "",
+  ...props
+}: Omit<React.ComponentProps<"img">, "src"> & { src: string | null }) {
+  const [failedSrc, setFailedSrc] = React.useState<string | null>(null)
+  if (!src || failedSrc === src) return null
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- public Storage URL, already 256px webp
+    <img
+      data-slot="avatar-image"
+      loading="lazy"
+      decoding="async"
+      src={src}
+      alt={alt}
+      className={cn(
+        "absolute inset-0 aspect-square size-full rounded-full object-cover",
+        className
+      )}
+      {...props}
+      onError={() => setFailedSrc(src)}
+    />
+  )
+}
+
 function AvatarFallback({
   className,
   ...props
@@ -104,6 +137,7 @@ function AvatarGroupCount({
 export {
   Avatar,
   AvatarImage,
+  AvatarLazyImage,
   AvatarFallback,
   AvatarGroup,
   AvatarGroupCount,

@@ -1,5 +1,5 @@
 import { PlayerActions } from "@/components/admin/player-actions";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarLazyImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { avatarUrl } from "@/lib/avatar";
@@ -32,10 +32,7 @@ export function PlayerCard({
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <Avatar className="shrink-0">
-              <AvatarImage
-                src={avatarUrl(player.avatar_path, player.avatar_updated_at) ?? undefined}
-                alt=""
-              />
+              <AvatarLazyImage src={avatarUrl(player.avatar_path, player.avatar_updated_at)} />
               <AvatarFallback>{player.nickname.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">

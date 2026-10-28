@@ -9,7 +9,9 @@ import { APP_NAME } from "@/lib/constants";
 /** On every authenticated page, so sign out and notifications are always one tap away. */
 export function AppHeader() {
   return (
-    <header className="bg-background/80 sticky top-0 z-30 border-b backdrop-blur-lg">
+    // No backdrop blur: re-blurring what scrolls under a sticky bar, every frame, is
+    // what made the hundred-row list stutter on cheaper phones.
+    <header className="bg-background/95 sticky top-0 z-30 border-b">
       <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-4">
         <span className="flex min-w-0 items-center gap-2.5 font-semibold tracking-tight">
           <span className="bg-pitch-stripes text-gold grid size-8 shrink-0 place-items-center rounded-xl shadow-sm">

@@ -209,26 +209,32 @@ export function GameCard({
               )}
 
               {!started && !mine && (
-                <Button
-                  size="lg"
-                  className={cn(
-                    "h-14 w-full rounded-2xl text-base font-semibold",
-                    !beforeOpening && busy === null && "animate-pulse-ring",
+                <div className="relative">
+                  {/* The glow is its own layer behind the button, not a box-shadow on it. */}
+                  {!beforeOpening && busy === null && (
+                    <span
+                      aria-hidden
+                      className="animate-pulse-ring absolute inset-0 rounded-2xl bg-[oklch(0.72_0.18_150)] opacity-0"
+                    />
                   )}
-                  disabled={beforeOpening || busy !== null}
-                  onClick={() => call("join_game")}
-                >
-                  {busy === "join" ? (
-                    <>
-                      <Loader2 className="size-5 animate-spin" aria-hidden />
-                      Confirmando...
-                    </>
-                  ) : beforeOpening ? (
-                    "A lista ainda não abriu"
-                  ) : (
-                    "Confirmar presença"
-                  )}
-                </Button>
+                  <Button
+                    size="lg"
+                    className="relative h-14 w-full rounded-2xl text-base font-semibold"
+                    disabled={beforeOpening || busy !== null}
+                    onClick={() => call("join_game")}
+                  >
+                    {busy === "join" ? (
+                      <>
+                        <Loader2 className="size-5 animate-spin" aria-hidden />
+                        Confirmando...
+                      </>
+                    ) : beforeOpening ? (
+                      "A lista ainda não abriu"
+                    ) : (
+                      "Confirmar presença"
+                    )}
+                  </Button>
+                </div>
               )}
 
               {!started && mine && !confirmingLeave && (

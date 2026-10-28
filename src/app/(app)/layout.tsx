@@ -1,3 +1,5 @@
+import { preconnect } from "react-dom";
+
 import { AppHeader } from "@/components/layout/app-header";
 import { MainNav } from "@/components/layout/main-nav";
 import { requireApprovedProfile } from "@/lib/auth";
@@ -6,6 +8,15 @@ import { requireApprovedProfile } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  // The phone talks to Supabase directly (list, Confirmar, Realtime, photos), and
+  // from Brazil each new connection costs a few round trips of DNS and TLS. Opening
+  // it while the page's JavaScript is still downloading takes that off the first
+  // fetch. Two, because the browser keeps CORS requests (the RPCs) and plain image
+  // loads on separate connections.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  preconnect(supabaseUrl, { crossOrigin: "anonymous" });
+  preconnect(supabaseUrl);
+
   const profile = await requireApprovedProfile();
 
   return (
